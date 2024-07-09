@@ -1,6 +1,8 @@
 package fr.gouv.interieur.dso.controller;
 
+import fr.gouv.interieur.dso.models.Customer;
 import fr.gouv.interieur.dso.models.Demo;
+import fr.gouv.interieur.dso.repository.CustomerRepository;
 import fr.gouv.interieur.dso.service.jdbc.DemoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -20,6 +22,9 @@ public class DemoController {
     @Autowired
     private DemoService demoService;
 
+    @Autowired
+    private CustomerRepository customerRepository;
+
     @GetMapping("/")
     public ResponseDto helloWorld() {
         ResponseDto responseDto = new ResponseDto();
@@ -28,8 +33,13 @@ public class DemoController {
         return responseDto;
     }
 
-    @GetMapping("/demo")
+    @GetMapping("/postgres")
     public ResponseEntity<List<Demo>> getDemosList(){
         return new ResponseEntity<>(demoService.getListDemo(), HttpStatus.OK);
+    }
+
+    @GetMapping("/mongo")
+    public ResponseEntity<List<Customer>> getCustomers() {
+        return new ResponseEntity<>(customerRepository.findAll(), HttpStatus.OK);
     }
 }

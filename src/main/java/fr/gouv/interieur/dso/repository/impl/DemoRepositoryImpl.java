@@ -4,11 +4,13 @@ import fr.gouv.interieur.dso.models.Demo;
 import fr.gouv.interieur.dso.repository.DemoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Repository;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -34,5 +36,19 @@ public class DemoRepositoryImpl  implements DemoRepository {
             demoList.add(demo);
         });
         return demoList;
+    }
+
+    @Override
+    public Integer insert(Demo demo) {
+        GeneratedKeyHolder generatedKeyHolder = new GeneratedKeyHolder();
+        String sql = "INSERT INTO `demo` (`name`) VALUES (?);";
+        int rowsAffected = jdbcTemplate.update(conn -> {
+            PreparedStatement preparedStatement = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            preparedStatement.setString(1, demo.getName());
+            return  preparedStatement;
+        }, generatedKeyHolder);
+        // Get auto-incremented ID
+        Integer id = generatedKeyHolder.getKey().intValue();
+        return id;
     }
 }

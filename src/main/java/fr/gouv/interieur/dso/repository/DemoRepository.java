@@ -7,4 +7,6 @@ import java.util.List;
 @Repository
 public interface DemoRepository {
     public List<Demo> getAll();
+
+    public Integer insert(Demo demo);
 }

@@ -3,5 +3,12 @@ spring:
     url: jdbc:postgresql://localhost:5432/demo_dso
     username: demo_dso
     password: demo_dso
+  data:
+    mongodb:
+      uri: mongodb://root:root@localhost:27018/demo?authSource=admin
+      database: demo
+      username: root
+      password: root
+      authentication-database: admin
   liquibase:
     change-log: classpath:db/master.xml
