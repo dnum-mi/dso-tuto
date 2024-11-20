@@ -60,7 +60,8 @@ test-app:
 docker-build:
   variables:
     WORKING_DIR: "."
-    IMAGE_NAME: java-demo
+    IMAGE_NAME: service-a
+    DOCKERFILE: Dockerfile.serviceA
   stage: docker-build
   extends:
     - .kaniko:simple-build-push
@@ -68,8 +69,8 @@ docker-build:
 docker-build-2:
   variables:
     WORKING_DIR: "."
-    IMAGE_NAME: javanaise-demo
-    DOCKERFILE: DockerfileJavanaise
+    IMAGE_NAME: service-b
+    DOCKERFILE: Dockerfile.serviceB
   stage: docker-build
   extends:
     - .kaniko:simple-build-push
