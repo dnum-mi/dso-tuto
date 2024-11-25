@@ -25,6 +25,7 @@ stages:
   - build-app
   - test-app
   - docker-build
+  - sign
 
 read_secret:
   stage: read-secret
@@ -44,7 +45,6 @@ package-app:
   extends:
     - .java:build
 
-
 test-app:
   variables:
     MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
@@ -57,19 +57,29 @@ test-app:
   extends:
     - .java:sonar
 
-docker-build:
+docker-build-digest:
   variables:
     WORKING_DIR: "."
-    IMAGE_NAME: java-demo
+    IMAGE_NAME: app
+    EXTRA_BUILD_ARGS: --image-name-with-digest-file=${CI_PROJECT_DIR}/digest.txt
   stage: docker-build
   extends:
     - .kaniko:simple-build-push
+  artifacts:
+    name: "digest"
+    expose_as: "Image digest"
+    paths:
+      - digest.txt
 
-docker-build-2:
+sign_image:
+  stage: sign
   variables:
-    WORKING_DIR: "."
-    IMAGE_NAME: javanaise-demo
-    DOCKERFILE: DockerfileJavanaise
-  stage: docker-build
-  extends:
-    - .kaniko:simple-build-push
+    COSIGN_PASSWORD: $KEY_PASSWORD
+    REGISTRY_URL: $IMAGE_REPOSITORY
+  image: bitnami/cosign:2.4.1-debian-12-r0
+  before_script:
+    - mkdir -p $HOME/.docker
+    - echo "$DOCKER_AUTH" > $HOME/.docker/config.json
+  script:
+    - IMAGE_DIGEST=$( tail -n 1 digest.txt )
+    - cosign sign --key env://SIGN_KEY $IMAGE_DIGEST -y
