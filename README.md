@@ -196,7 +196,8 @@ Pour information, le bloc ci-dessus est une extension de la tache suivante issue
 
 #### Une autre approche via un Dockerfile multi-stage
 
-Il est possible de définir un Dockerfile multi-stage pour construire l'application il faudra cependant injecter les variables nécessaires au build de l'application en EXTRA_BUILD_ARGS et ajouter un script pour copier le fichier settings.xml dans le répertoire de travail.
+L'application construite ci-dessus est basée sur gitlab-ci pour consturire l'applicatif puis l'injecter dans une image Docker. Il est également possible de définir un Dockerfile multi-stage pour construire l'application java et l'injecter dans une image Docker. Dans cette approche, le dockerfile contient la partie build applicative et buld Docker. Ainsi il n'est plus nécessaire de faire les étapes *test-app* et build-app* mais uniquement *build-docker* en utilisant le fichier Dockerfile *DockerfileMultiStage*.
+ Il faudra cependant injecter les variables nécessaires au build de l'application en EXTRA_BUILD_ARGS et ajouter un script pour copier le fichier settings.xml dans le répertoire de travail.
 
 ```yaml
 docker-build:
@@ -210,6 +211,35 @@ docker-build:
     - cat $MVN_CONFIG_FILE > settings.xml
   extends:
     - .kaniko:simple-build-push
+```
+
+Pour information voici le contenu du fichier DockerfileMultiStage :
+```Dockerfile
+# First stage: complete build environment
+FROM maven:3.9.7-eclipse-temurin-21 AS builder
+
+# arg for config and secret
+ARG MVN_CONFIG
+ARG PROJECT_PATH
+ARG NEXUS_USERNAME
+ARG NEXUS_PASSWORD
+
+# copy settings.xml
+ADD settings.xml /usr/share/maven/ref/settings.xml
+
+# add pom.xml and source code
+ADD ./pom.xml pom.xml
+ADD ./src src/
+RUN mvn clean package -Dmaven.test.skip=true -s /usr/share/maven/ref/settings.xml
+
+# Second stage: copy file from stage one and build Java image
+FROM bitnami/java:21
+WORKDIR /app
+# Copy from builder image
+COPY --from=builder target/*.jar app.jar
+
+ENTRYPOINT ["java","-jar","/app/app.jar"]
+EXPOSE 8080
 ```
 
 ### Fichier .gitlab-ci-dso.yml complet
@@ -262,7 +292,6 @@ package-app:
   extends:
     - .java:build
 
-
 test-app:
   variables:
     MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
@@ -282,6 +311,47 @@ docker-build:
   stage: docker-build
   extends:
     - .kaniko:simple-build-push
+```
+
+Et le fichier .gitlab-ci-dso.yml dans le cas d'un Docker multi-stage build 
+```yaml
+include:
+  - project: $CATALOG_PATH
+    file:
+      - vault-ci.yml
+      - kaniko-ci.yml
+    ref: main
+
+# default:
+#  tags:
+#    - ADD_CUSTOM_TAG_HERE
+
+variables:
+  TAG: "${CI_COMMIT_REF_SLUG}"
+  DOCKERFILE: Dockerfile
+  REGISTRY_URL: "${IMAGE_REPOSITORY}"
+
+stages:
+  - read-secret
+  - docker-build
+
+read_secret:
+  stage: read-secret
+  extends:
+    - .vault:read_secret
+
+docker-build:
+  variables:
+    WORKING_DIR: "."
+    IMAGE_NAME: java-demo
+    DOCKERFILE: DockerfileMultiStage
+    EXTRA_BUILD_ARGS: --build-arg MVN_CONFIG=${MVN_CONFIG_FILE} --build-arg PROJECT_PATH=${PROJECT_PATH} --build-arg NEXUS_USERNAME=${NEXUS_USERNAME} --build-arg NEXUS_PASSWORD=${NEXUS_PASSWORD}
+  stage: docker-build
+  before_script:
+    - cat $MVN_CONFIG_FILE > settings.xml
+  extends:
+    - .kaniko:simple-build-push
+
 ```
 
 ## Exécution de la chaine CI par gitlab
