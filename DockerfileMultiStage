@@ -1,0 +1,23 @@
+# First stage: complete build environment
+FROM maven:3.9.7-eclipse-temurin-21 AS builder
+
+# arg for config and secret
+ARG MVN_CONFIG
+ARG PROJECT_PATH
+ARG NEXUS_USERNAME
+ARG NEXUS_PASSWORD
+
+# copy settings.xml
+ADD settings.xml /usr/share/maven/ref/settings.xml
+
+# add pom.xml and source code
+ADD ./pom.xml pom.xml
+ADD ./src src/
+RUN mvn clean package -Dmaven.test.skip=true -s /usr/share/maven/ref/settings.xml
+
+FROM bitnami/java:21
+WORKDIR /app
+COPY --from=builder target/*.jar app.jar
+
+ENTRYPOINT ["java","-jar","/app/app.jar"]
+EXPOSE 8080

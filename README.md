@@ -194,6 +194,24 @@ Pour information, le bloc ci-dessus est une extension de la tache suivante issue
     - /kaniko/executor --build-arg http_proxy=$http_proxy --build-arg https_proxy=$https_proxy --build-arg no_proxy=$no_proxy $EXTRA_BUILD_ARGS --context="$CI_PROJECT_DIR" --dockerfile="$CI_PROJECT_DIR/$WORKING_DIR/$DOCKERFILE" --destination $REGISTRY_URL/$IMAGE_NAME:$TAG
 ```
 
+#### Une autre approche via un Dockerfile multi-stage
+
+Il est possible de définir un Dockerfile multi-stage pour construire l'application il faudra cependant injecter les variables nécessaires au build de l'application en EXTRA_BUILD_ARGS et ajouter un script pour copier le fichier settings.xml dans le répertoire de travail.
+
+```yaml
+docker-build:
+  variables:
+    WORKING_DIR: "."
+    IMAGE_NAME: java-demo
+    DOCKERFILE: DockerfileMultiStage
+    EXTRA_BUILD_ARGS: --build-arg MVN_CONFIG=${MVN_CONFIG_FILE} --build-arg PROJECT_PATH=${PROJECT_PATH} --build-arg NEXUS_USERNAME=${NEXUS_USERNAME} --build-arg NEXUS_PASSWORD=${NEXUS_PASSWORD}
+  stage: docker-build
+  before_script:
+    - cat $MVN_CONFIG_FILE > settings.xml
+  extends:
+    - .kaniko:simple-build-push
+```
+
 ### Fichier .gitlab-ci-dso.yml complet
 Le fichier .gitlab-ci-dso.yml complet est le suivant :
 
