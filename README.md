@@ -32,8 +32,7 @@ La construction de l'image applicative s'effectue donc par les étapes suivantes
 
 ## Intégration à la chaine CPiN
 
-
-### Ajout di dépôt externe
+### Ajout du dépôt externe
 
 Nous allons détailler l'intégration de cette application de démo à l'offre Cloud Pi Native sur la plateforme d'accéleration.
 
